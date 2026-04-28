@@ -135,6 +135,61 @@ async function getGallery(pool, slug) {
 }
 
 
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+
+async function autocomplete(pool, { q, category, limit = 10, isFame }) {
+  if (!q || q.trim().length < 2) return [];
+
+  const term = q.trim();
+  const params = [term];
+  const categoryCondition = [];
+
+  if (isFame) {
+    if (category) {
+      params.push(category);
+      categoryCondition.push(`p.category = $${params.length}`);
+    }
+    const catWhere = categoryCondition.length ? `AND ${categoryCondition[0]}` : '';
+    params.push(limit);
+    const rows = await pool.query(
+      `SELECT p.id, p.slug, p.full_name, p.image_url, p.category,
+              p.birth_year, p.death_year
+       FROM people p
+       WHERE unaccent(p.full_name) ILIKE '%' || unaccent($1) || '%'
+       ${catWhere}
+       ORDER BY (unaccent(p.full_name) ILIKE unaccent($1) || '%') DESC,
+                p.data_quality DESC, p.full_name
+       LIMIT $${params.length}`,
+      params
+    );
+    return rows.rows;
+  }
+
+  // chunkywho — join person_categories for category info
+  if (category) {
+    params.push(category);
+    categoryCondition.push(`pc.category = $${params.length}`);
+  }
+  const catJoin  = 'LEFT JOIN person_categories pc ON pc.person_id = p.id';
+  const catWhere = categoryCondition.length ? `AND ${categoryCondition[0]}` : '';
+  params.push(limit);
+  const rows = await pool.query(
+    `SELECT p.id, p.slug, p.full_name, p.image_url,
+            MIN(pc.category) AS category,
+            p.birth_year, p.death_year
+     FROM people p ${catJoin}
+     WHERE unaccent(p.full_name) ILIKE '%' || unaccent($1) || '%'
+     ${catWhere}
+     GROUP BY p.id
+     ORDER BY (unaccent(p.full_name) ILIKE unaccent($1) || '%') DESC,
+              p.data_quality DESC, p.full_name
+     LIMIT $${params.length}`,
+    params
+  );
+  return rows.rows;
+}
+
+
 // ── Categories summary ────────────────────────────────────────────────────────
 
 async function getCategories(pool, isFame) {
@@ -166,4 +221,4 @@ async function getByPlatform(pool, platform, platformId) {
 }
 
 
-module.exports = { listPeople, getPerson, getGallery, getCategories, getByPlatform };
+module.exports = { listPeople, getPerson, getGallery, getCategories, getByPlatform, autocomplete };

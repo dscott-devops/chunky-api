@@ -1,11 +1,19 @@
 const { Router } = require('express');
 const { famePool } = require('../db');
 const { paginate } = require('../middleware/pagination');
-const { listPeople, getPerson, getGallery, getCategories, getByPlatform } = require('../db/queries');
+const { listPeople, getPerson, getGallery, getCategories, getByPlatform, autocomplete } = require('../db/queries');
 
 const router = Router();
 const pool   = famePool;
 const isFame = true;
+
+router.get('/autocomplete', async (req, res, next) => {
+  try {
+    const { q, category } = req.query;
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 10));
+    res.json(await autocomplete(pool, { q, category, limit, isFame }));
+  } catch (e) { next(e); }
+});
 
 router.get('/categories', async (req, res, next) => {
   try {

@@ -192,6 +192,27 @@ check_contains "FAME /platforms/spotify/6vWDO969PvNqNYHIOW5v0m" \
 check_status   "FAME /platforms/tmdb/9999999999 → 404" \
                                             "$BASE/fame/platforms/tmdb/9999999999" 404
 
+echo -e "\n${yellow}── WHO — autocomplete ─────────────────────────────${reset}"
+check_contains "WHO autocomplete ?q=tom"        "$BASE/who/autocomplete?q=tom"      '"Tom Hanks"'
+check_contains "WHO autocomplete starts-with rank" "$BASE/who/autocomplete?q=tom"   '"Tom Courtenay"'
+check_contains "WHO autocomplete ?q=De Niro"    "$BASE/who/autocomplete?q=De%20Niro" '"Robert De Niro"'
+check_json     "WHO autocomplete too short → []" "$BASE/who/autocomplete?q=t"       "Array.isArray(j) && j.length===0 ? 'yes':'no'" "yes"
+check_json     "WHO autocomplete empty q → []"  "$BASE/who/autocomplete"            "Array.isArray(j) && j.length===0 ? 'yes':'no'" "yes"
+check_json     "WHO autocomplete limit=3"        "$BASE/who/autocomplete?q=tom&limit=3" "j.length.toString()" "3"
+check_json     "WHO autocomplete has slug"       "$BASE/who/autocomplete?q=tom"     "typeof j[0].slug" "string"
+check_json     "WHO autocomplete has image_url field" "$BASE/who/autocomplete?q=tom" "('image_url' in j[0]) ? 'yes':'no'" "yes"
+
+echo -e "\n${yellow}── FAME — autocomplete ────────────────────────────${reset}"
+check_contains "FAME autocomplete ?q=bey"        "$BASE/fame/autocomplete?q=bey"      '"Beyonc'
+check_contains "FAME autocomplete accent ?q=Beyoncé" "$BASE/fame/autocomplete?q=Beyonc%C3%A9" '"beyonce"'
+check_contains "FAME autocomplete ?q=sel"        "$BASE/fame/autocomplete?q=sel"      '"Selena Gomez"'
+check_json     "FAME autocomplete too short → []" "$BASE/fame/autocomplete?q=b"      "Array.isArray(j) && j.length===0 ? 'yes':'no'" "yes"
+check_json     "FAME autocomplete limit=5"        "$BASE/fame/autocomplete?q=jen&limit=5" "j.length.toString()" "5"
+check_contains "FAME autocomplete ?category=actor" "$BASE/fame/autocomplete?q=jen&category=actor" '"actor"'
+check_json     "FAME autocomplete category=musician excludes actors" \
+               "$BASE/fame/autocomplete?q=jen&category=musician" \
+               "j.every(p=>p.category==='musician') ? 'yes':'no'" "yes"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 TOTAL=$((PASS + FAIL))
