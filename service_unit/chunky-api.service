@@ -1,0 +1,17 @@
+[Unit]
+Description=Chunky API (Node/Express)
+After=network.target
+
+[Service]
+Type=simple
+User=dscott
+WorkingDirectory=/srv/chunky-api
+EnvironmentFile=/etc/chunky-api/env
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
